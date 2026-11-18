@@ -1,0 +1,3 @@
+# Arquitetura — atualização MySQL
+
+Frontend: HTML/CSS/JavaScript. Backend: Express. Banco: MySQL 8. Login/cadastro: bcrypt e sessões com cookies HttpOnly armazenadas no MySQL. Endpoints: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`, `/api/data/planning` e `/api/data/goals`. Dados financeiros são vinculados ao usuário autenticado no servidor. Os documentos de requisitos originais deixavam a decisão de autenticação e persistência em aberto; a adoção de MySQL e login real foi solicitada posteriormente. Planejamento e metas foram integrados; despesas, ciclos, hábitos e conquistas ainda dependem de implementação completa.

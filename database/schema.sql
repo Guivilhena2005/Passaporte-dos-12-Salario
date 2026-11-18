@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS usuarios (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  nome VARCHAR(80) NOT NULL,
+  email VARCHAR(254) NOT NULL UNIQUE,
+  senha_hash VARCHAR(255) NOT NULL,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS dados_usuario (
+  usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('planning','goals')),
+  conteudo JSONB NOT NULL,
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (usuario_id, tipo)
+);
+CREATE TABLE IF NOT EXISTS "session" (
+  "sid" VARCHAR NOT NULL PRIMARY KEY,
+  "sess" JSON NOT NULL,
+  "expire" TIMESTAMP(6) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");

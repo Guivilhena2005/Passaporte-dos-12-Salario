@@ -1,0 +1,3 @@
+export function toCents(value){const n=Number(value);if(!Number.isFinite(n)||n<0)throw new RangeError('Valor inválido');return Math.round((n+Number.EPSILON)*100)}
+export function distribute(cents,percents){if(!Number.isSafeInteger(cents)||cents<0)throw new RangeError('Salário inválido');if(!Array.isArray(percents)||percents.length!==5||percents.some(p=>!Number.isFinite(p)||p<0||p>100))throw new RangeError('Percentuais inválidos');const amounts=percents.map(p=>Math.round(cents*p/100));return {amounts,total:amounts.reduce((a,b)=>a+b,0),difference:cents-amounts.reduce((a,b)=>a+b,0),percentTotal:percents.reduce((a,b)=>a+b,0)}}
+export function formatBRL(cents){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100)}

@@ -1,0 +1,1 @@
+export const POTS=Object.freeze([{key:'preciso',name:'Preciso',percent:50},{key:'quero',name:'Quero',percent:20},{key:'sonho',name:'Sonho',percent:10},{key:'protejo',name:'Protejo',percent:10},{key:'cresco',name:'Cresço',percent:10}]); export const SCHEMA_VERSION=1;

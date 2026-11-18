@@ -1,0 +1,1 @@
+import {distribute} from './balance.js';export function validatePlanning(cents,percents){if(cents<=0)return {ok:false,message:'Informe um salário maior que zero.'};const r=distribute(cents,percents);if(Math.abs(r.percentTotal-100)>1e-9)return {ok:false,message:'Para confirmar, os percentuais devem somar 100%.'};return {ok:true,message:'Planejamento válido.',result:r}}
