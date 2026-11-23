@@ -92,14 +92,14 @@ app.put('/api/data/:type', logged, wrap(async (req, res) => {
   const value = req.body?.data;
   if (value === undefined || value === null || typeof value !== 'object' || JSON.stringify(value).length > 50000)
     return res.status(400).json({ error: 'Dados inválidos ou muito grandes.' });
-  if (req.params.type === 'planning' && (!Number.isSafeInteger(value.salaryCents) || value.salaryCents < 0 ||
+  if (req.params.type === 'planning' && (!Number.isSafeInteger(value.salaryCents) || value.salaryCents <= 0 || value.salaryCents > 999999999999 ||
       !Array.isArray(value.percents) || value.percents.length !== 5 ||
       value.percents.some(n => typeof n !== 'number' || !Number.isFinite(n) || n < 0 || n > 100) ||
-      Math.abs(value.percents.reduce((a, b) => a + b, 0) - 100) > 0.0001))
+      Math.abs(value.percents.reduce((a, b) => a + b, 0) - 100) > 1e-9))
     return res.status(400).json({ error: 'Planejamento inválido.' });
   if (req.params.type === 'goals' && (!Array.isArray(value) || value.length > 200 ||
-      value.some(g => !g || typeof g.name !== 'string' || g.name.length > 150 ||
-      !Number.isFinite(g.target) || g.target <= 0 || !Number.isFinite(g.saved) || g.saved < 0)))
+      value.some(g => !g || typeof g.name !== 'string' || !g.name.trim() || g.name.length > 150 ||
+      !Number.isFinite(g.target) || g.target <= 0 || g.target > 9999999999.99 || !Number.isFinite(g.saved) || g.saved < 0 || g.saved > 9999999999.99)))
     return res.status(400).json({ error: 'Metas inválidas.' });
   await pool.query(`INSERT INTO dados_usuario(usuario_id,tipo,conteudo) VALUES ($1,$2,$3::jsonb)
     ON CONFLICT (usuario_id,tipo) DO UPDATE SET conteudo=EXCLUDED.conteudo, atualizado_em=NOW()`,
@@ -111,7 +111,10 @@ app.get('/api/status-banco', wrap(async (_req, res) => {
   res.json({ conectado: true, banco: rows[0].banco });
 }));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada.' }));
-app.use(express.static(root, { extensions: ['html'] }));
+app.get(['/', '/index.html'], (_req, res) => res.sendFile(path.join(root, 'index.html')));
+for (const dir of ['pages', 'css', 'js', 'assets']) {
+  app.use('/' + dir, express.static(path.join(root, dir), { dotfiles: 'deny', index: false }));
+}
 app.use((err, _req, res, _next) => {
   console.error('Erro de API:', err);
   res.status(500).json({ error: 'Erro interno. Tente novamente.' });
