@@ -8,6 +8,8 @@ import { rateLimit } from 'express-rate-limit';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool } from './db.js';
+import { financeRoutes } from './finance.js';
+import { readFile } from 'node:fs/promises';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
@@ -110,8 +112,17 @@ app.get('/api/status-banco', wrap(async (_req, res) => {
   const { rows } = await pool.query('SELECT current_database() AS banco');
   res.json({ conectado: true, banco: rows[0].banco });
 }));
+financeRoutes(app,logged,wrap);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada.' }));
-app.get(['/', '/index.html'], (_req, res) => res.sendFile(path.join(root, 'index.html')));
+app.get(['/', '/index.html'], (_req, res) => res.redirect('/pages/inicio.html'));
+const legacyPages = { 'perfil': 'inicio', 'configuracoes': 'inicio', 'jornada': 'inicio', 'boas-vindas': 'inicio', 'conquistas': 'metas' };
+for (const [oldPage, target] of Object.entries(legacyPages)) {
+  app.get('/pages/' + oldPage + '.html', (_req, res) => res.redirect('/pages/' + target + '.html'));
+}
+app.get(['/pages/inicio.html', '/pages/planejamento.html', '/pages/despesas.html', '/pages/metas.html'], (req, res, next) => {
+  if (!req.session.userId) return res.redirect('/pages/login.html');
+  next();
+});
 for (const dir of ['pages', 'css', 'js', 'assets']) {
   app.use('/' + dir, express.static(path.join(root, dir), { dotfiles: 'deny', index: false }));
 }
@@ -120,7 +131,8 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Erro interno. Tente novamente.' });
 });
 const port = Number(process.env.PORT || 3000);
-pool.query('SELECT 1').then(() => {
+pool.query('SELECT 1').then(async () => {
+  await pool.query(await readFile(path.join(root,'database/migrations/001-finance.sql'),'utf8')); 
   app.listen(port, () => console.log(`Passaporte: http://localhost:${port}`));
 }).catch(error => {
   console.error('Não foi possível conectar ao PostgreSQL:', error.message);
