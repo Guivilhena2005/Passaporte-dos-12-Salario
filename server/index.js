@@ -131,11 +131,24 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Erro interno. Tente novamente.' });
 });
 const port = Number(process.env.PORT || 3000);
-pool.query('SELECT 1').then(async () => {
-  await pool.query(await readFile(path.join(root,'database/migrations/001-finance.sql'),'utf8')); 
-  app.listen(port, () => console.log(`Passaporte: http://localhost:${port}`));
-}).catch(error => {
-  console.error('Não foi possível conectar ao PostgreSQL:', error.message);
-  process.exitCode = 1;
-  pool.end();
-});
+
+if (!process.env.VERCEL) {
+  pool.query('SELECT 1').then(async () => {
+    await pool.query(
+      await readFile(
+        path.join(root, 'database/migrations/001-finance.sql'),
+        'utf8'
+      )
+    );
+
+    app.listen(port, () => {
+      console.log(`Passaporte: http://localhost:${port}`);
+    });
+  }).catch(error => {
+    console.error(error.message);
+    process.exitCode = 1;
+    pool.end();
+  });
+}
+
+export default app;
