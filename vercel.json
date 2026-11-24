@@ -1,0 +1,7 @@
+{
+  "framework": null,
+  "builds": [
+    { "src": "index.js", "use": "@vercel/node", "config": { "includeFiles": ["pages/**", "css/**", "js/**", "assets/**", "database/**", "node_modules/connect-pg-simple/table.sql"] } }
+  ],
+  "routes": [{ "src": "/(.*)", "dest": "/index.js" }]
+}

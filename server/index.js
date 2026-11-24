@@ -11,13 +11,35 @@ import { pool } from './db.js';
 import { financeRoutes } from './finance.js';
 import { readFile } from 'node:fs/promises';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = process.env.VERCEL ? process.cwd() : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
   throw new Error('Defina SESSION_SECRET com pelo menos 32 caracteres no .env');
 }
 const PgStore = connectPgSimple(session);
 const store = new PgStore({ pool, tableName: 'session', createTableIfMissing: false });
 const app = express();
+let initialization;
+function initializeDatabase() {
+  if (!initialization) {
+    initialization = (async () => {
+      const schema = await readFile(path.join(root, 'database/schema.sql'), 'utf8');
+      const migration = await readFile(path.join(root, 'database/migrations/001-finance.sql'), 'utf8');
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock(120012)');
+        await client.query(schema);
+        await client.query(migration);
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally { client.release(); }
+    })().catch(error => { initialization = undefined; throw error; });
+  }
+  return initialization;
+}
+app.use('/api', (req, res, next) => initializeDatabase().then(() => next(), next));
 app.disable('x-powered-by');
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -133,14 +155,7 @@ app.use((err, _req, res, _next) => {
 const port = Number(process.env.PORT || 3000);
 
 if (!process.env.VERCEL) {
-  pool.query('SELECT 1').then(async () => {
-    await pool.query(
-      await readFile(
-        path.join(root, 'database/migrations/001-finance.sql'),
-        'utf8'
-      )
-    );
-
+  initializeDatabase().then(() => {
     app.listen(port, () => {
       console.log(`Passaporte: http://localhost:${port}`);
     });
